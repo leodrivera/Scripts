@@ -1,4 +1,3 @@
-%%javascript  
 /*
 This code was based on kmahelona's js code.
 */
