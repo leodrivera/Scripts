@@ -21,7 +21,7 @@ function createTOC(){
     var toc = "";
     var level = 0;
     var levels = {};
-    // Names from JupyterLab Launcher for ignoring
+    // Ignoring titles from JupyterLab Launcher
     const names = ["Notebook", "Console", "Other"];
     $('#toc').html('');
     $(":header").each(function(i){
