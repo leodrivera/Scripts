@@ -56,11 +56,6 @@
      */
     var read_config = function () {
         var cfg = default_cfg;
-
-        if (!liveNotebook) {
-            return cfg;
-        }
-
         // config may be specified at system level or at document level.
         // first, update defaults with config loaded from server
         $.extend(true, cfg, IPython.notebook.config.data.toc2);
@@ -217,24 +212,24 @@
         }
     }
 
-    var create_navigate_menu = function(cfg, callback) {
+    var create_navigate_menu = function(callback) {
         $('#kernel_menu').parent().after('<li id="Navigate"/>')
         $('#Navigate').addClass('dropdown').append($('<a/>').attr('href', '#').attr('id', 'Navigate_sub'))
         $('#Navigate_sub').text('Navigate').addClass('dropdown-toggle').attr('data-toggle', 'dropdown')
         $('#Navigate').append($('<ul/>').attr('id', 'Navigate_menu').addClass('dropdown-menu')
             .append($("<div/>").attr("id", "navigate_menu").addClass('toc')))
 
-        if (cfg['nav_menu']) {
-            $('#Navigate_menu').css(cfg['nav_menu'])
+        if (IPython.notebook.metadata.toc['nav_menu']) {
+            $('#Navigate_menu').css(IPython.notebook.metadata.toc['nav_menu'])
             $('#navigate_menu').css('width', $('#Navigate_menu').css('width'))
             $('#navigate_menu').css('height', $('#Navigate_menu').height())
         } else {
-            cfg.nav_menu = {};
+            IPython.notebook.metadata.toc.nav_menu = {};
             events.on("before_save.Notebook",
                 function() {
                     try {
-                        cfg.nav_menu['width'] = $('#Navigate_menu').css('width')
-                        cfg.nav_menu['height'] = $('#Navigate_menu').css('height')
+                        IPython.notebook.metadata.toc.nav_menu['width'] = $('#Navigate_menu').css('width')
+                        IPython.notebook.metadata.toc.nav_menu['height'] = $('#Navigate_menu').css('height')
                     } catch (e) {
                         console.log("[toc2] Error in metadata (navigation menu) - Proceeding", e)
                     }
@@ -247,8 +242,8 @@
                 $('#navigate_menu').css('height', $('#Navigate_menu').height())
             },
             stop: function(event, ui) {
-                cfg.nav_menu['width'] = $('#Navigate_menu').css('width')
-                cfg.nav_menu['height'] = $('#Navigate_menu').css('height')
+                IPython.notebook.metadata.toc.nav_menu['width'] = $('#Navigate_menu').css('width')
+                IPython.notebook.metadata.toc.nav_menu['height'] = $('#Navigate_menu').css('height')
             }
         })
 
@@ -269,9 +264,11 @@
         }
         if (visible_sidebar) {
             var nb_inner_w = nb_inner.outerWidth();
-            inner_css.marginLeft = sidebar_w + margin; // shift notebook rightward to fit the sidebar in
-            if (available_space <= nb_inner_w) {
-                inner_css.width = available_space; // also slim notebook to fit sidebar
+            if (available_space <= nb_inner_w + sidebar_w) {
+                inner_css.marginLeft = sidebar_w + margin; // shift notebook rightward to fit the sidebar in
+                if (available_space <= nb_inner_w) {
+                    inner_css.width = available_space; // also slim notebook to fit sidebar
+                }
             }
         }
         nb_inner.css(inner_css);
@@ -309,6 +306,7 @@
 
     var makeUnmakeSidebar = function (cfg) {
         var make_sidebar = cfg.sideBar;
+        var view_rect = (liveNotebook ? document.getElementById('site') : document.body).getBoundingClientRect();
         var wrap = $('#toc-wrapper')
             .toggleClass('sidebar-wrapper', make_sidebar)
             .toggleClass('float-wrapper', !make_sidebar)
@@ -316,8 +314,7 @@
         wrap.children('.ui-resizable-se').toggleClass('ui-icon', !make_sidebar);
         wrap.children('.ui-resizable-e').toggleClass('ui-icon ui-icon-grip-dotted-vertical', make_sidebar);
         if (make_sidebar) {
-            var sidebar_top = liveNotebook ? document.getElementById('site').top : 0
-            wrap.css({top: sidebar_top,height: "",left: 0});
+            wrap.css({top: view_rect.top, height: '', left: 0});
         }
         else {
             wrap.css({height: toc_position.height});
@@ -365,7 +362,7 @@
             drag: function(event, ui) {
                 var make_sidebar = ui.position.left < 20; // 20 is snapTolerance
                 if (make_sidebar) {
-                    ui.position.top = liveNotebook ? document.getElementById('site').top : 0
+                    ui.position.top = (liveNotebook ? document.getElementById('site') : document.body).getBoundingClientRect().top;
                     ui.position.left = 0;
                 }
                 if (make_sidebar !== cfg.sideBar) {
@@ -651,7 +648,7 @@
                 $('#navigate_menu').empty().append($('#toc > .toc-item').clone());
             }
             if ($('#Navigate_menu').length == 0) {
-                create_navigate_menu((liveNotebook ? IPython.notebook.metadata.toc : cfg), pop_nav);
+                create_navigate_menu(pop_nav);
             } else {
                 pop_nav()
             }
